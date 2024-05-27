@@ -107,6 +107,9 @@ func connectionsHandler(w http.ResponseWriter, _ *http.Request, server *Server) 
 }
 
 func (s *Server) consume() {
+	// Define maximum retry count
+	maxRetries := 5
+
 	conn, err := amqp.Dial("amqp://guest:guest@localhost:5672/")
 	failOnError(err, "Failed to connect to RabbitMQ")
 	defer conn.Close()
@@ -144,7 +147,7 @@ func (s *Server) consume() {
 			var clientMsg ClientMessage
 			if err := json.Unmarshal(d.Body, &clientMsg); err != nil {
 				log.Println("Error decoding message:", err)
-				d.Nack(false, true)
+				d.Nack(false, false) // Nack without requeue
 				continue
 			}
 
@@ -158,8 +161,17 @@ func (s *Server) consume() {
 				log.Printf("Message forwarded to client %s", clientMsg.DestinationID)
 				d.Ack(false)
 			} else {
-				log.Printf("Destination client %s not found", clientMsg.DestinationID)
-				d.Nack(false, true)
+				// Increment the retry count
+				retryCount := 1
+				for retryCount <= maxRetries {
+					log.Printf("Destination client %s not found (Retry %d)", clientMsg.DestinationID, retryCount)
+					retryCount++
+				}
+				// If maximum retry count reached, Nack without requeue
+				if retryCount > maxRetries {
+					log.Printf("Maximum retry count reached. Discarding message.")
+					d.Nack(false, false)
+				}
 			}
 		}
 	}()
