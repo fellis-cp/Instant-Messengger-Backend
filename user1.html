@@ -1,0 +1,66 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>WebSocket RabbitMQ Client</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+    }
+    #messages {
+      border: 1px solid #ddd;
+      padding: 10px;
+      max-width: 500px;
+      margin: 20px auto;
+      height: 300px;
+      overflow-y: scroll;
+    }
+    .message {
+      margin: 5px 0;
+      padding: 5px;
+      border-bottom: 1px solid #eee;
+    }
+    #status {
+      text-align: center;
+      margin: 20px;
+    }
+  </style>
+</head>
+<body>
+  <h1>WebSocket RabbitMQ Client</h1>
+  <div id="status">Connecting...</div>
+  <div id="messages"></div>
+  
+  <script>
+    const ws = new WebSocket("ws://localhost:8181/ws");
+
+    ws.onopen = () => {
+      console.log("Connected to WebSocket server");
+      document.getElementById('status').textContent = "Connected";
+
+      // Send user ID after connection is open
+      const userID = { id: "user1" }; // Replace with appropriate user ID
+      ws.send(JSON.stringify(userID));
+    };
+
+    ws.onmessage = (event) => {
+      console.log("Received:", event.data);
+      const messagesDiv = document.getElementById('messages');
+      const messageElem = document.createElement('div');
+      messageElem.classList.add('message');
+      messageElem.textContent = event.data;
+      messagesDiv.appendChild(messageElem);
+      messagesDiv.scrollTop = messagesDiv.scrollHeight;
+    };
+
+    ws.onerror = (error) => {
+      console.error("WebSocket error:", error);
+      document.getElementById('status').textContent = "Error";
+    };
+
+    ws.onclose = () => {
+      console.log("WebSocket connection closed");
+      document.getElementById('status').textContent = "Disconnected";
+    };
+  </script>
+</body>
+</html>
