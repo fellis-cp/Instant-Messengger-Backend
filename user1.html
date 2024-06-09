@@ -37,9 +37,17 @@
       console.log("Connected to WebSocket server");
       document.getElementById('status').textContent = "Connected";
 
-      // Send user ID after connection is open
-      const userID = { id: "user1" }; // Replace with appropriate user ID
-      ws.send(JSON.stringify(userID));
+      // Prompt user for user ID
+      const userID = prompt("Please enter your user ID:");
+      const userObj = { id: userID };
+      
+      if (userID) {
+        // Send user ID after connection is open
+        ws.send(JSON.stringify(userObj));
+      } else {
+        alert("User ID cannot be empty. Please refresh and try again.");
+        ws.close();
+      }
     };
 
     ws.onmessage = (event) => {
