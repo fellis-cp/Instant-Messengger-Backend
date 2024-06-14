@@ -53,9 +53,22 @@
     ws.onmessage = (event) => {
       console.log("Received:", event.data);
       const messagesDiv = document.getElementById('messages');
+      const message = JSON.parse(event.data);
+
+      // Create message element
       const messageElem = document.createElement('div');
       messageElem.classList.add('message');
-      messageElem.textContent = event.data;
+      messageElem.innerHTML = `
+        <p><strong>From:</strong> ${message.senderId}</p>
+        <p><strong>Content:</strong> ${message.content}</p>
+        <p><strong>Sent At:</strong> ${message.sentAt}</p>
+        <p><strong>Attachments:</strong></p>
+        <ul>
+          ${message.attachments.map(att => `<li>${att}</li>`).join('')}
+        </ul>
+      `;
+
+      // Append message element to messages div
       messagesDiv.appendChild(messageElem);
       messagesDiv.scrollTop = messagesDiv.scrollHeight;
     };

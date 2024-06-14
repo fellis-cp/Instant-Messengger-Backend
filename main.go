@@ -11,19 +11,18 @@ import (
 	amqp "github.com/rabbitmq/amqp091-go"
 )
 
-type MessageData struct {
-	ID      string `json:"id"`
-	Message string `json:"message"`
-}
-
 type InfoConnection struct {
 	ID   string `json:"id"`
 	Addr string `json:"address"`
 }
 
 type ClientMessage struct {
-	DestinationID string `json:"destination_id"`
-	Content       string `json:"content"`
+	ID          string   `json:"id"`
+	ChatID      string   `json:"chatId"`
+	SenderID    string   `json:"senderId"`
+	Content     string   `json:"content"`
+	SentAt      string   `json:"sentAt"`
+	Attachments []string `json:"attachments"`
 }
 
 type Server struct {
@@ -35,7 +34,7 @@ type Server struct {
 
 func NewServer() *Server {
 	return &Server{
-		conns:    make(map[string][]*websocket.Conn), // Ubah inisialisasi map ini
+		conns:    make(map[string][]*websocket.Conn),
 		nextID:   1,
 		upgrader: websocket.Upgrader{CheckOrigin: func(r *http.Request) bool { return true }},
 	}
@@ -105,8 +104,9 @@ func (s *Server) handleWebSocket(w http.ResponseWriter, r *http.Request) {
 		// Kirim pesan hanya ke koneksi tujuan
 		s.connsMu.Lock()
 		found := false
-		for _, destConn := range s.conns[clientMsg.DestinationID] {
-			destConn.WriteMessage(websocket.TextMessage, []byte(clientMsg.Content))
+		for _, destConn := range s.conns[clientMsg.ChatID] {
+			// Kirim pesan sesuai dengan struktur yang diberikan
+			destConn.WriteJSON(clientMsg)
 			// Kirim respons ke klien bahwa pesan berhasil dikirim
 			conn.WriteMessage(websocket.TextMessage, []byte("Pesan berhasil dikirim"))
 			found = true
@@ -114,7 +114,7 @@ func (s *Server) handleWebSocket(w http.ResponseWriter, r *http.Request) {
 		s.connsMu.Unlock()
 
 		if !found {
-			conn.WriteMessage(websocket.TextMessage, []byte("orangnya tidak ada"))
+			conn.WriteMessage(websocket.TextMessage, []byte("Penerima pesan tidak ditemukan"))
 		}
 	}
 }
@@ -190,8 +190,9 @@ func (s *Server) consume() {
 			}
 
 			s.connsMu.Lock()
-			for _, destConn := range s.conns[clientMsg.DestinationID] {
-				destConn.WriteMessage(websocket.TextMessage, []byte(clientMsg.Content))
+			for _, destConn := range s.conns[clientMsg.ChatID] {
+				// Kirim pesan sesuai dengan struktur yang diberikan
+				destConn.WriteJSON(clientMsg)
 			}
 			s.connsMu.Unlock()
 
